@@ -1,0 +1,19 @@
+# Python virtual environments
+backend/.venv/
+venv/
+
+# Compiled python
+__pycache__/
+*.pyc
+
+# Secret config
+backend/config.py
+*.env
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/

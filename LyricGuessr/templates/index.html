@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrackGuessr</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- Welcome splash screen -->
+    <div id="welcome-screen">
+        <div class="welcome-inner">
+            <div class="welcome-logo-circle">🎵</div>
+            <h1 class="welcome-title">TrackGuessr</h1>
+            <p class="welcome-subtitle">
+                A Spotify-powered track guessing game.
+            </p>
+            <p class="welcome-cta">
+                Click anywhere to start
+            </p>
+        </div>
+    </div>
+
+    <div id="app-bg-glow"></div>
+
+    <div id="main-container">
+        <!-- ... your existing header + panels ... -->
+
+    <!-- Soft background glow -->
+    <div id="app-bg-glow"></div>
+
+    <div id="main-container">
+        <!-- ================= HEADER ================= -->
+        <header class="app-header">
+            <div class="app-title-wrap">
+                <div class="app-logo-circle">🎵</div>
+                <div class="app-title-text">
+                    <h1>TrackGuessr</h1>
+                    <p class="app-subtitle">A Spotify-powered music quiz</p>
+                </div>
+            </div>
+
+            <div class="app-controls">
+                <!-- Theme toggle -->
+                <button id="theme-toggle-btn" class="ghost-btn">
+                    🌙 Dark
+                </button>
+
+                <!-- Auth panel -->
+                <div id="auth-panel" class="auth-panel">
+                    <button id="spotify-login-btn" class="primary-ghost-btn">
+                        <span class="btn-icon">🔐</span>
+                        Login with Spotify
+                    </button>
+                    <button id="spotify-logout-btn" class="secondary-ghost-btn" style="display:none;">
+                        <span class="btn-icon">🚪</span>
+                        Logout
+                    </button>
+
+                    <div id="user-info" class="user-info" style="display:none;">
+                        <img id="user-avatar"
+                             src=""
+                             alt="profile"
+                             class="user-avatar" />
+                        <div class="user-text">
+                            <span class="user-label">Signed in as</span>
+                            <span id="user-name" class="user-name"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- =============== WELCOME / MODE SELECTION =============== -->
+        <section id="genre-selection" class="panel panel-selection">
+            <div class="selection-header">
+                <h2>Welcome to TrackGuessr</h2>
+                <p class="selection-subtitle">
+                    Log in with Spotify, then guess tracks from your Top Songs or the world’s biggest hits.
+                </p>
+            </div>
+
+            <div id="genre-buttons-container" class="mode-grid">
+                <!-- Your Top Tracks -->
+                <button class="mode-card genre-btn" data-mode="top">
+                    <div class="mode-card-inner">
+                        <div class="mode-icon-wrap">
+                            <span class="mode-icon">💚</span>
+                        </div>
+                        <div class="mode-text">
+                            <h3>Your Top Tracks</h3>
+                            <p>Guess songs based on what you actually listen to.</p>
+                        </div>
+                        <div class="mode-footer">
+                            <span class="mode-tag">Personalized</span>
+                            <span class="mode-highscore" id="highscore-top">Best: 0 pts</span>
+                        </div>
+                    </div>
+                </button>
+
+                <!-- Global Hits -->
+                <button class="mode-card genre-btn" data-mode="global">
+                    <div class="mode-card-inner">
+                        <div class="mode-icon-wrap">
+                            <span class="mode-icon">🌍</span>
+                        </div>
+                        <div class="mode-text">
+                            <h3>Global Hits</h3>
+                            <p>Test yourself on today’s biggest chart-toppers.</p>
+                        </div>
+                        <div class="mode-footer">
+                            <span class="mode-tag mode-tag-alt">Trending</span>
+                            <span class="mode-highscore" id="highscore-global">Best: 0 pts</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Local leaderboard -->
+            <section class="leaderboard-panel">
+                <div class="leaderboard-header">
+                    <h3>Local Leaderboard</h3>
+                    <span class="leaderboard-caption">Top 10 scores on this device</span>
+                </div>
+                <ul id="leaderboard-list" class="leaderboard-list">
+                    <!-- Filled by JS -->
+                </ul>
+            </section>
+
+            <p class="tiny-note">
+                Tip: Use headphones for the best experience 🎧
+            </p>
+        </section>
+
+        <!-- ================= GAME AREA ================= -->
+        <section id="game-area" class="panel panel-game" style="display:none;">
+            <div class="game-top-row">
+                <p id="score" class="score-pill">Score: 0</p>
+                <button id="back-to-menu-btn" class="link-btn">
+                    ⬅ Back to modes
+                </button>
+            </div>
+
+            <div class="game-layout">
+                <!-- Left: artwork + info -->
+                <div class="game-left">
+                    <div id="song-info" class="song-info">
+                        <div class="artwork-frame">
+                            <img id="song-image"
+                                 src=""
+                                 alt="cover"
+                                 class="song-image" />
+                            <div class="artwork-overlay">
+                                <button id="play-audio-btn" class="play-circle-btn">
+                                    ▶️
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="song-meta" class="song-meta">
+                            <p id="song-title" class="song-title"></p>
+                            <p id="song-artist" class="song-artist"></p>
+                        </div>
+                    </div>
+
+                    <p class="game-instruction">
+                        Listen to the snippet, then pick the correct track title.
+                    </p>
+
+                    <p id="feedback" class="feedback-text"></p>
+                </div>
+
+                <!-- Right: options -->
+                <div class="game-right">
+                    <div id="options-container" class="options-grid">
+                        <!-- Buttons injected here -->
+                    </div>
+
+                    <button id="next-song-btn" class="primary-btn" style="display:none;margin-top:1.5rem;">
+                        Next Track ➜
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Hidden audio element -->
+    <audio id="audio-player"></audio>
+
+    <script src="/static/game.js"></script>
+</body>
+</html>
