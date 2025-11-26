@@ -52,6 +52,12 @@ const highscoreTopEl = document.getElementById("highscore-top");
 const highscoreGlobalEl = document.getElementById("highscore-global");
 const leaderboardListEl = document.getElementById("leaderboard-list");
 
+// Detect backend URL: local dev vs deployed
+const BACKEND_BASE =
+    window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+        ? "http://127.0.0.1:5000"
+        : "https://trackguessr.onrender.com";  // <-- replace with real Render URL
+
 // ===========================================================
 // THEME
 // ===========================================================
@@ -210,7 +216,7 @@ function showLoggedInUI(data) {
 
 async function refreshAuthUI() {
     try {
-        const res = await fetch("http://127.0.0.1:5000/auth/status", {
+        const res = await fetch(BACKEND_BASE + "/auth/status", {
             credentials: "include"
         });
 
@@ -277,12 +283,12 @@ async function initializeGame() {
     // Auth buttons
     if (spotifyLoginBtn) {
         spotifyLoginBtn.addEventListener("click", () => {
-            window.location.href = "http://127.0.0.1:5000/login";
+            window.location.href = BACKEND_BASE + '/login';
         });
     }
     if (spotifyLogoutBtn) {
         spotifyLogoutBtn.addEventListener("click", () => {
-            window.location.href = "http://127.0.0.1:5000/logout";
+            window.location.href = BACKEND_BASE + '/logout';
         });
     }
 
@@ -361,7 +367,7 @@ async function startMode(mode) {
             : "/api/quiz/global-hits";
 
     try {
-        const response = await fetch("http://127.0.0.1:5000" + endpoint, {
+        const response = await fetch(BACKEND_BASE+ endpoint, {
             credentials: "include",
         });
 

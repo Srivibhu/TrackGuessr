@@ -4,7 +4,7 @@
 
 SPOTIFY_CLIENT_ID = "d4390d20c3804a84a9b833455ef5784f"
 SPOTIFY_CLIENT_SECRET = "121619db652d4c51adbf07252c4feecb"
-REDIRECT_URI = "http://127.0.0.1:5000/callback"
+REDIRECT_URI = "https://trackguessr.onrender.com/callback"
 FLASK_SECRET_KEY = "sk_T8fh3Z0vA19xP27mQxuD93BnL2VQ91W"
 
-FRONTEND_URL = "http://127.0.0.1:5002/"
+FRONTEND_URL = "https://track-guessr.vercel.app"
