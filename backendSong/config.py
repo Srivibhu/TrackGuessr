@@ -6,3 +6,5 @@ SPOTIFY_CLIENT_SECRET = os.environ.get("SPOTIFY_CLIENT_SECRET", "")
 REDIRECT_URI = os.environ.get("REDIRECT_URI", "")
 FLASK_SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "dev-secret")
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://127.0.0.1:5000")  # or whatever local dev URL
+_raw = os.getenv("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = [o.strip() for o in _raw.split(",") if o.strip()]

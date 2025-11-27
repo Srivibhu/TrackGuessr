@@ -20,14 +20,18 @@ app.config.update(
     SESSION_COOKIE_SECURE=True,
 )
 
+# Allow both Vercel domain spellings plus any env override.
+ALLOWED_ORIGINS = [
+    FRONTEND_URL,                    # e.g. "https://trackguessr.vercel.app"
+    "https://trackguessr.vercel.app",
+    "https://track-guessr.vercel.app",
+    "http://localhost:5002",         # (optional: for local dev)
+]
+
 CORS(
     app,
     supports_credentials=True,
-    origins=[
-        FRONTEND_URL,                    # "https://track-guessr.vercel.app"
-        "https://track-guessr.vercel.app",
-        "http://localhost:5002",         # (optional: for local dev)
-    ],
+    origins=[o for o in ALLOWED_ORIGINS if o],
 )
 
 @app.route("/")
