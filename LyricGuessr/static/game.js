@@ -242,19 +242,26 @@ async function refreshAuthUI() {
 // INITIALIZE
 // ===========================================================
 async function initializeGame() {
-    // Welcome splash: click anywhere to dismiss
     const welcomeScreen = document.getElementById("welcome-screen");
+
+    // Auto-hide if user already dismissed once
+    const seenSplash = localStorage.getItem("trackGuessrSeenSplash") === "1";
+
     if (welcomeScreen) {
-        welcomeScreen.addEventListener("click", () => {
-            // Add class for fade-out
+        const hideSplash = () => {
             welcomeScreen.classList.add("welcome-hide");
-            // After animation, remove it completely
             setTimeout(() => {
                 welcomeScreen.style.display = "none";
             }, 450);
-        });
-    }
+            localStorage.setItem("trackGuessrSeenSplash", "1");
+        };
 
+        if (seenSplash) {
+            hideSplash();
+        } else {
+            welcomeScreen.addEventListener("click", hideSplash);
+        }
+    }
     // --- existing theme / auth / etc below here ---
 
     // Highscores + leaderboard

@@ -15,9 +15,20 @@ from quiz_generator import generate_quiz_from_tracks
 
 app = Flask(__name__)
 app.secret_key = FLASK_SECRET_KEY
+app.config.update(
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True,
+)
 
-CORS(app, supports_credentials=True)
-
+CORS(
+    app,
+    supports_credentials=True,
+    origins=[
+        FRONTEND_URL,                    # "https://track-guessr.vercel.app"
+        "https://track-guessr.vercel.app",
+        "http://localhost:5002",         # (optional: for local dev)
+    ],
+)
 
 @app.route("/")
 def root():
