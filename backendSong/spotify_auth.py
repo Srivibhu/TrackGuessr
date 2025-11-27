@@ -21,6 +21,7 @@ def _encode_client_credentials():
 def spotify_login():
     scope = "user-top-read playlist-read-private playlist-read-collaborative"
 
+    print("DEBUG REDIRECT_URI =", REDIRECT_URI, flush=True)
     auth_url = (
         "https://accounts.spotify.com/authorize"
         f"?client_id={SPOTIFY_CLIENT_ID}"
