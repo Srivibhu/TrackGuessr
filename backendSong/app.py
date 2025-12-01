@@ -1,6 +1,6 @@
 # backendSong/app.py
 
-from flask import Flask, jsonify, session, redirect
+from flask import Flask, jsonify, session, redirect, render_template
 from flask_cors import CORS
 
 from config import FLASK_SECRET_KEY, FRONTEND_URL
@@ -36,7 +36,7 @@ CORS(
 
 @app.route("/")
 def root():
-    return "Spotify backend is running."
+    return render_template("index.html")
 
 
 @app.route("/login")
