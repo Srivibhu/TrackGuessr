@@ -35,7 +35,7 @@ def spotify_login():
 
 
 # -------------------------------------------
-# 2. Spotify redirects back → exchange code
+# 2. Spotify redirects back -> exchange code
 # -------------------------------------------
 def spotify_callback():
     code = request.args.get("code")

@@ -10,6 +10,10 @@ let currentSongList = [];
 let playStartTime = null;
 let accumulatedPlayMs = 0;
 
+const FADE_MS = 360;
+let loadingInterval = null;
+let currentStreak = 0;
+
 // High scores per mode (local)
 let highScores = {
     top: 0,
@@ -27,6 +31,7 @@ const gameAreaDiv = document.getElementById("game-area");
 
 const scoreDisplay = document.getElementById("score");
 const feedback = document.getElementById("feedback");
+const streakDisplay = document.getElementById("streak");
 
 const audioPlayer = document.getElementById("audio-player");
 const playBtn = document.getElementById("play-audio-btn");
@@ -51,12 +56,112 @@ const optionsContainer = document.getElementById("options-container");
 const highscoreTopEl = document.getElementById("highscore-top");
 const highscoreGlobalEl = document.getElementById("highscore-global");
 const leaderboardListEl = document.getElementById("leaderboard-list");
+const loadingPanel = document.getElementById("loading-panel");
+const loadingProgress = document.getElementById("loading-progress");
+const gameContent = document.getElementById("game-content");
 
 // Detect backend URL: local dev vs deployed
 const BACKEND_BASE =
     window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
         ? "http://127.0.0.1:5000"
-        : "https://trackguessr.onrender.com";  // <-- replace with real Render URL
+        : "https://trackguessr.onrender.com"; // replace with real Render URL
+
+// ===========================================================
+// SCREEN TRANSITIONS
+// ===========================================================
+function hideScreen(el) {
+    if (!el) return;
+    el.classList.add("is-hidden");
+    el.setAttribute("aria-hidden", "true");
+    window.setTimeout(() => {
+        if (el.classList.contains("is-hidden")) {
+            el.classList.add("is-gone");
+            el.style.display = "none";
+        }
+    }, FADE_MS);
+}
+
+function showScreen(el) {
+    if (!el) return;
+    el.style.display = "block";
+    el.classList.remove("is-gone");
+    window.requestAnimationFrame(() => {
+        el.classList.remove("is-hidden");
+    });
+    el.setAttribute("aria-hidden", "false");
+}
+
+function showLoading() {
+    if (loadingPanel) {
+        loadingPanel.classList.remove("is-hidden");
+        loadingPanel.style.display = "grid";
+    }
+    if (gameContent) {
+        gameContent.style.display = "none";
+    }
+    if (loadingProgress) {
+        loadingProgress.style.width = "0%";
+    }
+
+    let progress = 0;
+    if (loadingInterval) {
+        window.clearInterval(loadingInterval);
+    }
+    loadingInterval = window.setInterval(() => {
+        progress = Math.min(90, progress + Math.random() * 12);
+        if (loadingProgress) {
+            loadingProgress.style.width = `${Math.floor(progress)}%`;
+        }
+    }, 260);
+}
+
+function hideLoading() {
+    if (loadingInterval) {
+        window.clearInterval(loadingInterval);
+        loadingInterval = null;
+    }
+    if (loadingProgress) {
+        loadingProgress.style.width = "100%";
+    }
+    window.setTimeout(() => {
+        if (loadingPanel) {
+            loadingPanel.classList.add("is-hidden");
+            loadingPanel.style.display = "none";
+        }
+        if (gameContent) {
+            gameContent.style.display = "grid";
+        }
+    }, 240);
+}
+
+function flashFeedback(type) {
+    const body = document.body;
+    const successClass = "flash-success";
+    const errorClass = "flash-error";
+    body.classList.remove(successClass, errorClass);
+    body.classList.add(type === "success" ? successClass : errorClass);
+    window.setTimeout(() => {
+        body.classList.remove(successClass, errorClass);
+    }, 220);
+}
+
+function playFeedbackTone(type) {
+    try {
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = context.createOscillator();
+        const gain = context.createGain();
+        osc.type = "sine";
+        osc.frequency.value = type === "success" ? 740 : 220;
+        gain.gain.value = 0.12;
+        osc.connect(gain);
+        gain.connect(context.destination);
+        osc.start();
+        osc.stop(context.currentTime + 0.12);
+        osc.onended = () => context.close();
+    } catch (e) {
+        // Ignore audio failures
+    }
+}
 
 // ===========================================================
 // THEME
@@ -64,7 +169,7 @@ const BACKEND_BASE =
 function applyTheme(mode) {
     document.documentElement.classList.toggle("dark", mode === "dark");
     if (themeToggleBtn) {
-        themeToggleBtn.textContent = mode === "dark" ? "☀️ Light" : "🌙 Dark";
+        themeToggleBtn.textContent = mode === "dark" ? "Light mode" : "Dark mode";
     }
 }
 
@@ -132,12 +237,27 @@ function updateLeaderboardUI() {
 
     if (!leaderboardEntries.length) {
         const li = document.createElement("li");
-        li.textContent = "No scores yet — play a round!";
+        li.className = "leaderboard-empty";
+
+        const title = document.createElement("div");
+        title.className = "leaderboard-empty-title";
+        title.textContent = "No scores yet";
+
+        const bars = document.createElement("div");
+        bars.className = "leaderboard-empty-bars";
+
+        for (let i = 0; i < 3; i += 1) {
+            const bar = document.createElement("div");
+            bar.className = "leaderboard-empty-bar";
+            bars.appendChild(bar);
+        }
+
+        li.appendChild(title);
+        li.appendChild(bars);
         leaderboardListEl.appendChild(li);
         return;
     }
 
-    // Show up to top 10 only
     leaderboardEntries
         .slice(0, 10)
         .forEach((entry, index) => {
@@ -167,7 +287,6 @@ function recordScoreToLeaderboard() {
     });
 
     leaderboardEntries.sort((a, b) => b.score - a.score);
-    // Keep only top 10 scores
     leaderboardEntries = leaderboardEntries.slice(0, 10);
 
     saveLeaderboard();
@@ -198,10 +317,7 @@ function showLoggedInUI(data) {
     if (spotifyLogoutBtn) spotifyLogoutBtn.style.display = "inline-flex";
     if (userInfoPanel) userInfoPanel.style.display = "flex";
 
-    const name =
-        data.display_name ||
-        data.id ||
-        "Spotify user";
+    const name = data.display_name || data.id || "Spotify user";
 
     if (userNameEl) {
         userNameEl.textContent = name;
@@ -209,8 +325,7 @@ function showLoggedInUI(data) {
 
     const avatar = data.image_url || "";
     if (userAvatarEl) {
-        userAvatarEl.src =
-            avatar || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+        userAvatarEl.src = avatar || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
     }
 }
 
@@ -244,30 +359,23 @@ async function refreshAuthUI() {
 async function initializeGame() {
     const welcomeScreen = document.getElementById("welcome-screen");
 
-    // Auto-hide if user already dismissed once
     const seenSplash = localStorage.getItem("trackGuessrSeenSplash") === "1";
 
     if (welcomeScreen) {
-        const hideSplash = () => {
-            welcomeScreen.classList.add("welcome-hide");
-            setTimeout(() => {
-                welcomeScreen.style.display = "none";
-            }, 450);
-            localStorage.setItem("trackGuessrSeenSplash", "1");
-        };
-
         if (seenSplash) {
-            hideSplash();
+            welcomeScreen.classList.add("is-hidden", "is-gone");
+            welcomeScreen.style.display = "none";
+            welcomeScreen.setAttribute("aria-hidden", "true");
         } else {
-            welcomeScreen.addEventListener("click", hideSplash);
+            welcomeScreen.addEventListener("click", () => {
+                hideScreen(welcomeScreen);
+                localStorage.setItem("trackGuessrSeenSplash", "1");
+            });
         }
     }
-    // --- existing theme / auth / etc below here ---
 
-    // Highscores + leaderboard
     loadHighScores();
 
-    // Theme
     let savedTheme = localStorage.getItem("theme");
     if (!savedTheme) {
         savedTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -287,34 +395,29 @@ async function initializeGame() {
         });
     }
 
-    // Auth buttons
     if (spotifyLoginBtn) {
         spotifyLoginBtn.addEventListener("click", () => {
-            window.location.href = BACKEND_BASE + '/login';
+            window.location.href = BACKEND_BASE + "/login";
         });
     }
     if (spotifyLogoutBtn) {
         spotifyLogoutBtn.addEventListener("click", () => {
-            window.location.href = BACKEND_BASE + '/logout';
+            window.location.href = BACKEND_BASE + "/logout";
         });
     }
 
-    // Read current auth status
     await refreshAuthUI();
 
-    // Mode buttons
     document.querySelectorAll(".genre-btn[data-mode]").forEach(btn => {
         btn.addEventListener("click", () => {
             startMode(btn.dataset.mode);
         });
     });
 
-    // Back to menu
     if (backToMenuBtn) {
         backToMenuBtn.addEventListener("click", resetToMenu);
     }
 
-    // Play / pause
     if (playBtn) {
         playBtn.addEventListener("click", () => {
             if (playBtn.disabled) return;
@@ -322,7 +425,7 @@ async function initializeGame() {
             if (audioPlayer.paused) {
                 audioPlayer.play().then(() => {
                     if (!playStartTime) playStartTime = performance.now();
-                    playBtn.textContent = "Pause ⏸️";
+                    playBtn.textContent = "Pause";
                 }).catch(err => {
                     console.warn("Playback failed:", err);
                 });
@@ -332,7 +435,7 @@ async function initializeGame() {
                     accumulatedPlayMs += performance.now() - playStartTime;
                     playStartTime = null;
                 }
-                playBtn.textContent = "▶️";
+                playBtn.textContent = "Play";
             }
         });
     }
@@ -342,16 +445,15 @@ async function initializeGame() {
             accumulatedPlayMs += performance.now() - playStartTime;
             playStartTime = null;
         }
-        if (playBtn) playBtn.textContent = "▶️";
+        if (playBtn) playBtn.textContent = "Play";
     });
 
-    // Next track
     if (nextSongBtn) {
         nextSongBtn.addEventListener("click", loadSong);
     }
 
-    // Initial text
     if (scoreDisplay) scoreDisplay.textContent = "Score: 0";
+    if (streakDisplay) streakDisplay.textContent = "Streak: 0";
     if (feedback) feedback.textContent = "Choose a mode to begin.";
 }
 
@@ -361,12 +463,18 @@ async function initializeGame() {
 async function startMode(mode) {
     currentMode = mode;
     score = 0;
+    currentStreak = 0;
 
     if (scoreDisplay) scoreDisplay.textContent = "Score: 0";
+    if (streakDisplay) streakDisplay.textContent = "Streak: 0";
     if (feedback) {
-        feedback.textContent = "Loading…";
+        feedback.textContent = "Loading...";
         feedback.style.color = "";
     }
+
+    hideScreen(genreSelectionDiv);
+    showScreen(gameAreaDiv);
+    showLoading();
 
     const endpoint =
         mode === "top"
@@ -374,13 +482,14 @@ async function startMode(mode) {
             : "/api/quiz/global-hits";
 
     try {
-        const response = await fetch(BACKEND_BASE+ endpoint, {
+        const response = await fetch(BACKEND_BASE + endpoint, {
             credentials: "include",
         });
 
         const data = await response.json();
 
         if (!response.ok || !data.questions) {
+            hideLoading();
             if (feedback) {
                 feedback.textContent = "Error contacting backend.";
                 feedback.style.color = "#e74c3c";
@@ -390,6 +499,7 @@ async function startMode(mode) {
 
         const questions = data.questions;
         if (!Array.isArray(questions) || !questions.length) {
+            hideLoading();
             if (feedback) {
                 feedback.textContent = "No tracks available for this mode.";
                 feedback.style.color = "#e74c3c";
@@ -409,6 +519,7 @@ async function startMode(mode) {
         startGameWithSongs(songs);
     } catch (err) {
         console.error("startMode error:", err);
+        hideLoading();
         if (feedback) {
             feedback.textContent = "Error contacting backend.";
             feedback.style.color = "#e74c3c";
@@ -422,8 +533,7 @@ async function startMode(mode) {
 function startGameWithSongs(songs) {
     currentSongList = songs.slice();
 
-    if (genreSelectionDiv) genreSelectionDiv.style.display = "none";
-    if (gameAreaDiv) gameAreaDiv.style.display = "block";
+    hideLoading();
 
     loadSong();
 }
@@ -448,7 +558,6 @@ function loadSong() {
     if (songTitleEl) songTitleEl.textContent = "";
     if (songArtistEl) songArtistEl.textContent = currentSong.artist || "";
 
-    // Options
     if (optionsContainer) {
         optionsContainer.innerHTML = "";
 
@@ -467,17 +576,16 @@ function loadSong() {
         });
     }
 
-    // Audio
     audioPlayer.src = currentSong.audioFile || "";
     if (playBtn) {
         playBtn.disabled = !currentSong.audioFile;
-        playBtn.textContent = "▶️";
+        playBtn.textContent = "Play";
     }
 
     if (feedback) {
         feedback.textContent = currentSong.audioFile
             ? ""
-            : "(No preview for this track — guess based on the options!)";
+            : "No preview for this track - guess based on the options.";
         feedback.style.color = "";
     }
 
@@ -495,7 +603,7 @@ function handleGuess(correct, clickedButton) {
     }
 
     audioPlayer.pause();
-    if (playBtn) playBtn.textContent = "▶️";
+    if (playBtn) playBtn.textContent = "Play";
 
     const seconds = Math.max(1, Math.floor(listened / 1000));
     let points = correct ? Math.max(50, 500 - seconds * 25) : 0;
@@ -518,13 +626,25 @@ function handleGuess(correct, clickedButton) {
     if (songTitleEl) songTitleEl.textContent = currentSong.title || "";
     if (songArtistEl) songArtistEl.textContent = currentSong.artist || "";
 
+    if (correct) {
+        currentStreak += 1;
+        flashFeedback("success");
+        playFeedbackTone("success");
+    } else {
+        currentStreak = 0;
+        flashFeedback("error");
+        playFeedbackTone("error");
+    }
+
+    if (streakDisplay) streakDisplay.textContent = `Streak: ${currentStreak}`;
+
     if (feedback) {
         if (!correct) {
             feedback.textContent = "Incorrect!";
             feedback.style.color = "#e74c3c";
         } else {
             feedback.textContent = `Correct! (+${points})`;
-            feedback.style.color = "#22c55e";
+            feedback.style.color = "#16a34a";
         }
     }
 
@@ -540,7 +660,7 @@ function finalizeRun() {
 
     if (feedback) {
         feedback.textContent = `Round complete! Final score: ${score}`;
-        feedback.style.color = "#22c55e";
+        feedback.style.color = "#16a34a";
     }
 
     if (nextSongBtn) nextSongBtn.style.display = "none";
@@ -558,23 +678,34 @@ function resetToMenu() {
 
     if (playBtn) {
         playBtn.disabled = false;
-        playBtn.textContent = "▶️";
+        playBtn.textContent = "Play";
+    }
+
+    if (loadingInterval) {
+        window.clearInterval(loadingInterval);
+        loadingInterval = null;
+    }
+    if (loadingPanel) {
+        loadingPanel.classList.add("is-hidden");
+        loadingPanel.style.display = "none";
     }
 
     currentSong = null;
     currentSongList = [];
     score = 0;
+    currentStreak = 0;
     playStartTime = null;
     accumulatedPlayMs = 0;
 
     if (scoreDisplay) scoreDisplay.textContent = "Score: 0";
+    if (streakDisplay) streakDisplay.textContent = "Streak: 0";
     if (feedback) {
         feedback.textContent = "Choose a mode to begin.";
         feedback.style.color = "";
     }
 
-    if (gameAreaDiv) gameAreaDiv.style.display = "none";
-    if (genreSelectionDiv) genreSelectionDiv.style.display = "block";
+    hideScreen(gameAreaDiv);
+    showScreen(genreSelectionDiv);
 }
 
 // ===========================================================

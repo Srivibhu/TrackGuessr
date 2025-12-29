@@ -9,25 +9,26 @@ Play with your **Top Tracks** or **Global Hits**, with scoring, high scores and 
 - Backend: Flask (Python) + Spotify Web API
 - Auth: Spotify OAuth (Authorization Code flow)
 - Deployment:
-  - Frontend → Vercel
-  - Backend → Render
+  - Frontend -> Vercel
+  - Backend -> Render
 
 ## Project Structure
 
 ```text
 TrackGuessr/
-├─ frontend/          # Static site deployed to Vercel
-│  ├─ index.html
-│  └─ static/
-│     ├─ style.css
-│     └─ game.js
-│
-├─ backend/           # Flask API for Spotify + quiz generation
-│  ├─ app.py
-│  ├─ spotify_auth.py
-│  ├─ spotify_client.py
-│  ├─ quiz_generator.py
-│  ├─ config.py          # local only (not committed)
-│  ├─ config_example.py  # safe template
-│  └─ requirements.txt
-└─ .gitignore
+?? frontend/          # Static site deployed to Vercel
+?  ?? index.html
+?  ?? static/
+?     ?? style.css
+?     ?? game.js
+?
+?? backend/           # Flask API for Spotify + quiz generation
+?  ?? app.py
+?  ?? spotify_auth.py
+?  ?? spotify_client.py
+?  ?? quiz_generator.py
+?  ?? config.py          # local only (not committed)
+?  ?? example_config.py  # safe template
+?  ?? requirements.txt
+?? .gitignore
+```

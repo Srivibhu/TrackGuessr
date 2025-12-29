@@ -3,7 +3,7 @@
 from flask import Flask, jsonify, session, redirect, render_template
 from flask_cors import CORS
 
-from config import FLASK_SECRET_KEY, FRONTEND_URL
+from config import FLASK_SECRET_KEY, FRONTEND_URL, ALLOWED_ORIGINS as CONFIG_ALLOWED_ORIGINS
 from spotify_auth import spotify_login, spotify_callback
 from spotify_client import (
     spotify_get,
@@ -26,6 +26,7 @@ ALLOWED_ORIGINS = [
     "https://trackguessr.vercel.app",
     "https://track-guessr.vercel.app",
     "http://localhost:5002",         # (optional: for local dev)
+    *CONFIG_ALLOWED_ORIGINS,
 ]
 
 CORS(
@@ -167,7 +168,7 @@ def quiz_global_hits():
 
         if playlists:
             playlist_id = playlists[0]["id"]
-            print("GLOBAL_HITS using playlist:", term, "→", playlist_id)
+            print("GLOBAL_HITS using playlist:", term, "->", playlist_id)
             break
 
     if not playlist_id:
